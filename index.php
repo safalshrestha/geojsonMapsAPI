@@ -23,6 +23,7 @@ if(isset($_FILES['jsonfile'])){
  if (isset($_POST['color'])) {
    $color = $_POST['color'];
  }
+
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
@@ -54,6 +55,8 @@ if(isset($_FILES['jsonfile'])){
 
   var map;
 
+
+  //initMao and Zoom Dublin
   function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
       zoom: 12,
@@ -62,6 +65,8 @@ if(isset($_FILES['jsonfile'])){
         lng: -6.2603
       }
     });
+
+    var infowindow = new google.maps.InfoWindow();
 
     // Load GeoJSON.
     // map.data.loadGeoJson(
@@ -77,6 +82,17 @@ if(isset($_FILES['jsonfile'])){
         fillColor: color,
         strokeWeight: 1
       }
+    });
+
+    map.data.addListener('click', function(event) {
+    	var Zone = event.feature.getProperty("Zone");
+      var Tariff = event.feature.getProperty("Tariff");
+    	infowindow.setContent("<div style='width:150px;'><em>Parking Info:</em><br><strong>Zone:</strong>"+Zone+"<br><strong>Tariff:</strong>"+Tariff+"</div>");
+    	// position the infowindow on the marker
+    	infowindow.setPosition(event.feature.getGeometry().get());
+    	// anchor the infowindow on the marker
+    	//infowindow.setOptions({pixelOffset: new google.maps.Size(0,-30)});
+    	infowindow.open(map);
     });
 
   }
