@@ -30,6 +30,7 @@ if(isset($_FILES['jsonfile'])){
   <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
     <title>Geopal Test</title>
   </head>
   <body>
@@ -47,13 +48,20 @@ if(isset($_FILES['jsonfile'])){
           <option value="green" <?php if ($color=="green") echo "selected";?>> Green </option>
         </select>
       </form>
+      <button onclick="findPoint()" id="findbtn" disabled> Find Points </button>
     </div>
+
+    <div id="foundmarkers" display: none;>
+
+    </div>
+
 <!-- Replace the value of the key parameter with your own API key. -->
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwI2qwx3uN_Q2v941johzEwbaUANHTqO4&callback=initMap">
 </script>
 <script type="text/javascript">
 
   var map;
+  var poly;
 
 
   //initMao and Zoom Dublin
@@ -91,11 +99,72 @@ if(isset($_FILES['jsonfile'])){
     	// position the infowindow on the marker
     	infowindow.setPosition(event.feature.getGeometry().get());
     	// anchor the infowindow on the marker
-    	//infowindow.setOptions({pixelOffset: new google.maps.Size(0,-30)});
+    	infowindow.setOptions({pixelOffset: new google.maps.Size(0,-30)});
     	infowindow.open(map);
     });
 
+    var isClosed = false;
+    poly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
+    google.maps.event.addListener(map, 'click', function (clickEvent) {
+        if (isClosed) {
+          //findPoint(poly);
+          return;
+        }
+        var markerIndex = poly.getPath().length;
+        var isFirstMarker = markerIndex === 0;
+        var marker = new google.maps.Marker({ map: map, position: clickEvent.latLng, draggable: true });
+        if (isFirstMarker) {
+            google.maps.event.addListener(marker, 'click', function () {
+                if (isClosed)
+                    return;
+                var path = poly.getPath();
+                poly.setMap(null);
+                poly = new google.maps.Polygon({ map: map, path: path, strokeColor: "#FF0000", strokeOpacity: 0.8, strokeWeight: 2, fillColor: "#FF0000", fillOpacity: 0.35 });
+                isClosed = true;
+                $("#findbtn").removeAttr('disabled');
+            });
+        }
+        google.maps.event.addListener(marker, 'drag', function (dragEvent) {
+            poly.getPath().setAt(markerIndex, dragEvent.latLng);
+        });
+
+        poly.getPath().push(clickEvent.latLng);
+    });
+
+
+  //var file = require('<?php echo "geoJson/".$geojsonfile; ?>');
+
+
+}
+
+  function findPoint(){
+    var arr = null;
+
+    $.ajax({
+        'async': false,
+        'global': false,
+        'url': "<?php echo "geoJson/".$geojsonfile; ?>",
+        'dataType': "json",
+        'success': function (data) {
+            arr = data;
+        }
+    });
+
+    arr.features.forEach(function (entry) {
+      //console.log(entry.geometry.coordinates);
+      var coord = new google.maps.LatLng(entry.geometry.coordinates[1], entry.geometry.coordinates[0]);
+
+      if (google.maps.geometry.poly.containsLocation(coord,poly)) {
+
+        console.log(coord.lat());
+        console.log("found");
+      }
+
+
+    });
+    return;
   }
+
 
 
 </script>
