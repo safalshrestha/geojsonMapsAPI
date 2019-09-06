@@ -1,6 +1,7 @@
 <?php
   session_start();
 
+  //file upload logic
   if(isset($_FILES['jsonfile'])){
       $file_name = $_FILES['jsonfile']['name'];
       $file_tmp =$_FILES['jsonfile']['tmp_name'];
@@ -17,10 +18,14 @@
          echo "<span style='color: red;'>".$error."</span>";
       }
    }
+   //load the file from session if it has already been set.
+   //Required when the form reloads after color has been chosen
+   //other way to do would be using jquery to set new market Color
+   //however my inital plan was not to use jquery so used html form instead
    if (isset($_SESSION['fileloaded'])){
      $geojsonfile = $_SESSION['fileloaded'];
    }
-
+   //setting default color if none is set
    if (isset($_POST['color'])) {
      $color = $_POST['color'];
    }
@@ -39,11 +44,13 @@
   </head>
   <body>
     <div id="header">
-      <h1> Simple geoJSON Application </h1>
-      <h2> Safal Shrestha </h2>
+      <h2> Simple geoJSON Application </h2>
+      <h3> By Safal Shrestha </h3>
+      <p>Sample GeoJSON file available <a href="geojsdublinparking.geojson"> HERE </a></p>
   </div>
     <div id="map"></div>
 
+    <!-- User Options -->
     <div id="options">
       <form method="POST" action="index.php" enctype="multipart/form-data">
         Upload GeoJSON file: <input type="file" name="jsonfile" onchange="form.submit()">
@@ -87,7 +94,7 @@
   var poly;
 
 
-  //initMao and Zoom Dublin
+  //initMap and Zoom Dublin
   function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
       zoom: 12,
@@ -115,6 +122,7 @@
       }
     });
 
+    //Click listener to view map data for individual point
     map.data.addListener('click', function(event) {
     	var Zone = event.feature.getProperty("Zone");
       var Tariff = event.feature.getProperty("Tariff");
@@ -133,7 +141,7 @@
 
 
 }
-
+  //find points with a set perimeter
   function findPoint(){
     var arr = null;
 
@@ -163,6 +171,7 @@
     return;
   }
 
+  //lasso tool to select the point in the map
   function lassotool() {
     var isClosed = false;
     poly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
