@@ -1,28 +1,32 @@
-<?php session_start(); ?>
 <?php
-if(isset($_FILES['jsonfile'])){
-    $file_name = $_FILES['jsonfile']['name'];
-    $file_tmp =$_FILES['jsonfile']['tmp_name'];
-    $ext = strtolower(end(explode('.',$_FILES['jsonfile']['name'])));
-    if($ext != "geojson" && $ext != "geoJSON"){
-       $error = "Wrong File. Only geojson or geoJSON allowed.";
-    }
-    if($error == null){
-       move_uploaded_file($file_tmp,"geoJson/".$file_name);
-       $filetoload = $file_name;
-       $_SESSION['fileloaded'] = $filetoload;
-       echo "Success";
-    }else{
-       echo "<span style='color: red;'>".$error."</span>";
-    }
- }
- if (isset($_SESSION['fileloaded'])){
-   $geojsonfile = $_SESSION['fileloaded'];
- }
+  session_start();
 
- if (isset($_POST['color'])) {
-   $color = $_POST['color'];
- }
+  if(isset($_FILES['jsonfile'])){
+      $file_name = $_FILES['jsonfile']['name'];
+      $file_tmp =$_FILES['jsonfile']['tmp_name'];
+      $ext = strtolower(end(explode('.',$_FILES['jsonfile']['name'])));
+      if($ext != "geojson" && $ext != "geoJSON"){
+         $error = "Wrong File. Only geojson or geoJSON allowed.";
+      }
+      if($error == null){
+         move_uploaded_file($file_tmp,"geoJson/".$file_name);
+         $filetoload = $file_name;
+         $_SESSION['fileloaded'] = $filetoload;
+         //echo "Success";
+      }else{
+         echo "<span style='color: red;'>".$error."</span>";
+      }
+   }
+   if (isset($_SESSION['fileloaded'])){
+     $geojsonfile = $_SESSION['fileloaded'];
+   }
+
+   if (isset($_POST['color'])) {
+     $color = $_POST['color'];
+   }
+   else {
+     $color = 'red';
+   }
 
 ?>
 <!DOCTYPE html>
@@ -34,6 +38,10 @@ if(isset($_FILES['jsonfile'])){
     <title>Geopal Test</title>
   </head>
   <body>
+    <div id="header">
+      <h1> Simple geoJSON Application </h1>
+      <h2> Safal Shrestha </h2>
+  </div>
     <div id="map"></div>
 
     <div id="options">
@@ -48,12 +56,27 @@ if(isset($_FILES['jsonfile'])){
           <option value="green" <?php if ($color=="green") echo "selected";?>> Green </option>
         </select>
       </form>
+      <button onclick="lassotool()" id="lassotool"> Lasso Tool </button>
       <button onclick="findPoint()" id="findbtn" disabled> Find Points </button>
+
+      <div id="foundmarkers">
+        <table id="tablemarker" >
+          <tr>
+            <th>
+              Location
+            </th>
+            <th>
+              Latitude
+            </th>
+            <th>
+              Longitude
+            </th>
+          </tr>
+        </table>
+      </div>
     </div>
 
-    <div id="foundmarkers" display: none;>
 
-    </div>
 
 <!-- Replace the value of the key parameter with your own API key. -->
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwI2qwx3uN_Q2v941johzEwbaUANHTqO4&callback=initMap">
@@ -103,33 +126,7 @@ if(isset($_FILES['jsonfile'])){
     	infowindow.open(map);
     });
 
-    var isClosed = false;
-    poly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
-    google.maps.event.addListener(map, 'click', function (clickEvent) {
-        if (isClosed) {
-          //findPoint(poly);
-          return;
-        }
-        var markerIndex = poly.getPath().length;
-        var isFirstMarker = markerIndex === 0;
-        var marker = new google.maps.Marker({ map: map, position: clickEvent.latLng, draggable: true });
-        if (isFirstMarker) {
-            google.maps.event.addListener(marker, 'click', function () {
-                if (isClosed)
-                    return;
-                var path = poly.getPath();
-                poly.setMap(null);
-                poly = new google.maps.Polygon({ map: map, path: path, strokeColor: "#FF0000", strokeOpacity: 0.8, strokeWeight: 2, fillColor: "#FF0000", fillOpacity: 0.35 });
-                isClosed = true;
-                $("#findbtn").removeAttr('disabled');
-            });
-        }
-        google.maps.event.addListener(marker, 'drag', function (dragEvent) {
-            poly.getPath().setAt(markerIndex, dragEvent.latLng);
-        });
 
-        poly.getPath().push(clickEvent.latLng);
-    });
 
 
   //var file = require('<?php echo "geoJson/".$geojsonfile; ?>');
@@ -155,17 +152,53 @@ if(isset($_FILES['jsonfile'])){
       var coord = new google.maps.LatLng(entry.geometry.coordinates[1], entry.geometry.coordinates[0]);
 
       if (google.maps.geometry.poly.containsLocation(coord,poly)) {
-
-        console.log(coord.lat());
-        console.log("found");
+        $('#tablemarker').append('<tr><td>'+entry.properties.Location+'</td><td>'+coord.lat()+'</td><td>'+coord.lng()+'</td></tr>');
+        //console.log(coord.lat()+" and "+coord.lng());
+        //console.log("found");
       }
 
 
     });
+    $('#tablemarker').show();
     return;
   }
 
+  function lassotool() {
+    var isClosed = false;
+    poly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
 
+    //to change cursor
+    google.maps.event.addListener(map, 'mousemove', function(e) {
+            map.setOptions({draggableCursor:'crosshair'});
+    });
+
+    google.maps.event.addListener(map, 'click', function (clickEvent) {
+        if (isClosed) {
+          //findPoint(poly);
+          return;
+        }
+        var markerIndex = poly.getPath().length;
+        var markericon = 'icons/selected.png';
+        var isFirstMarker = markerIndex === 0;
+        var marker = new google.maps.Marker({ map: map, icon: markericon, position: clickEvent.latLng, draggable: true });
+        if (isFirstMarker) {
+            google.maps.event.addListener(marker, 'click', function () {
+                if (isClosed)
+                    return;
+                var path = poly.getPath();
+                poly.setMap(null);
+                poly = new google.maps.Polygon({ map: map, path: path, strokeColor: "#FF0000", strokeOpacity: 0.8, strokeWeight: 2, fillColor: "#FF0000", fillOpacity: 0.35 });
+                isClosed = true;
+                $("#findbtn").removeAttr('disabled');
+            });
+        }
+        google.maps.event.addListener(marker, 'drag', function (dragEvent) {
+            poly.getPath().setAt(markerIndex, dragEvent.latLng);
+        });
+
+        poly.getPath().push(clickEvent.latLng);
+    });
+  }
 
 </script>
 
